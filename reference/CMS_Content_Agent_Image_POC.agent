@@ -120,6 +120,7 @@ subagent ContentCreation:
 
     actions:
         Draft_Or_Refine_Text_For_Property:
+            source: "sfdc_cms__DraftOrRefineTextForProperty"
             target: "standardInvocableAction://generateOrRefineTextForProperty"
             description: "Draft or refine a single text property (subject line, preheader, heading, paragraph, button text) in the content builder. Returns a JSON Patch with the property's new value."
             label: "Marketing Cloud: Draft Content"
@@ -181,6 +182,7 @@ subagent ContentCreation:
                     is_displayable: False
 
         Create_Section_With_Content:
+            source: "sfdc_cms__CreateOrRefineSectionWithContent"
             target: "standardInvocableAction://createOrRefineSectionWithContent"
             description: "Generate a section with text content for an email or landing page. Returns a JSON Patch that creates the section. If the section needs an image, call Select_Marketing_Image after and splice its imageBlockJson into blockValue."
             label: "Marketing Cloud: Create Section with Content"
@@ -245,6 +247,7 @@ subagent ContentCreation:
                     is_displayable: True
 
         Create_Section:
+            source: "sfdc_cms__CreateOrRefineSection"
             target: "standardInvocableAction://createOrRefineSectionWithContent"
             description: "Generate a section STRUCTURE (columns, image slots, button slots) without generating text. Use for layout-only requests."
             label: "Marketing Cloud: Create Section"
@@ -308,6 +311,7 @@ subagent ContentCreation:
                     is_displayable: True
 
         Translate_Text_Content:
+            source: "sfdc_cms__TranslateTextContent"
             target: "standardInvocableAction://translateTextContent"
             description: "Translate text content in a piece of content from the source language into one or more target languages."
             label: "Marketing Cloud: Translate Text Content"
