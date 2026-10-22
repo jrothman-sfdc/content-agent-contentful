@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MktDataModel xmlns="http://soap.sforce.com/2006/04/metadata">
+    <masterLabel>Marketing Image</masterLabel>
+    <developerName>MarketingImage</developerName>
+    <description>Catalog of Contentful-hosted marketing images, synced via webhook. Agent-selectable along locale, campaign, and visualStyle variant dimensions. Soft-deletes on Contentful unpublish via isActive.</description>
+    <category>Engagement</category>
+    <fields>
+        <developerName>assetId__c</developerName>
+        <masterLabel>Asset ID</masterLabel>
+        <dataType>Text</dataType>
+        <isPrimaryKey>true</isPrimaryKey>
+        <isRequired>true</isRequired>
+    </fields>
+    <fields>
+        <developerName>url__c</developerName>
+        <masterLabel>URL</masterLabel>
+        <dataType>Text</dataType>
+    </fields>
+    <fields>
+        <developerName>altText__c</developerName>
+        <masterLabel>Alt Text</masterLabel>
+        <dataType>Text</dataType>
+    </fields>
+    <fields>
+        <developerName>title__c</developerName>
+        <masterLabel>Title</masterLabel>
+        <dataType>Text</dataType>
+    </fields>
+    <fields>
+        <developerName>description__c</developerName>
+        <masterLabel>Description</masterLabel>
+        <dataType>Text</dataType>
+    </fields>
+    <fields>
+        <developerName>tags__c</developerName>
+        <masterLabel>Raw Tags</masterLabel>
+        <dataType>Text</dataType>
+        <description>Comma-separated tags as received from Contentful (e.g. "locale_en_US,campaign_summer_sale,visualStyle_editorial"). Preserved for semantic ranking.</description>
+    </fields>
+    <fields>
+        <developerName>locale__c</developerName>
+        <masterLabel>Locale</masterLabel>
+        <dataType>Text</dataType>
+        <description>Variant dimension. e.g. en_US. Parsed from a locale_* tag.</description>
+    </fields>
+    <fields>
+        <developerName>campaign__c</developerName>
+        <masterLabel>Campaign</masterLabel>
+        <dataType>Text</dataType>
+        <description>Variant dimension. e.g. summer_sale. Parsed from a campaign_* tag.</description>
+    </fields>
+    <fields>
+        <developerName>visualStyle__c</developerName>
+        <masterLabel>Visual Style</masterLabel>
+        <dataType>Text</dataType>
+        <description>Variant dimension. e.g. editorial, product_shot, lifestyle, bright, muted. Parsed from a visualStyle_* tag.</description>
+    </fields>
+    <fields>
+        <developerName>isActive__c</developerName>
+        <masterLabel>Is Active</masterLabel>
+        <dataType>Boolean</dataType>
+        <description>True when the asset is published in Contentful. Flipped false on Asset.unpublish or Asset.delete.</description>
+    </fields>
+    <fields>
+        <developerName>mimeType__c</developerName>
+        <masterLabel>MIME Type</masterLabel>
+        <dataType>Text</dataType>
+    </fields>
+    <fields>
+        <developerName>width__c</developerName>
+        <masterLabel>Width</masterLabel>
+        <dataType>Number</dataType>
+    </fields>
+    <fields>
+        <developerName>height__c</developerName>
+        <masterLabel>Height</masterLabel>
+        <dataType>Number</dataType>
+    </fields>
+    <fields>
+        <developerName>updatedAt__c</developerName>
+        <masterLabel>Updated At</masterLabel>
+        <dataType>DateTime</dataType>
+    </fields>
+</MktDataModel>

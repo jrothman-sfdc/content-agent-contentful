@@ -1,0 +1,14 @@
+# Binary demo images - re-add in the parent .gitignore if you want to commit them
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.webp
+
+# Local manifest (keep manifest.example.json)
+manifest.json
+
+!README.md
+!manifest.example.json
+!.gitignore
+!.gitkeep

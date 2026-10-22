@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MktDataStream xmlns="http://soap.sforce.com/2006/04/metadata">
+    <masterLabel>Contentful Asset Webhook</masterLabel>
+    <developerName>ContentfulAssetWebhook</developerName>
+    <description>Receives Contentful Asset.publish, Asset.unpublish, and Asset.delete webhook payloads via the Data Cloud Ingestion API. Lands into a DLO which is mapped onto MarketingImage__dlm.</description>
+    <sourceType>IngestionApi</sourceType>
+    <category>Engagement</category>
+    <ingestionSchema>
+        <fields>
+            <developerName>assetId</developerName>
+            <masterLabel>Asset ID</masterLabel>
+            <dataType>Text</dataType>
+            <isPrimaryKey>true</isPrimaryKey>
+            <isRequired>true</isRequired>
+        </fields>
+        <fields>
+            <developerName>url</developerName>
+            <masterLabel>URL</masterLabel>
+            <dataType>Text</dataType>
+        </fields>
+        <fields>
+            <developerName>title</developerName>
+            <masterLabel>Title</masterLabel>
+            <dataType>Text</dataType>
+        </fields>
+        <fields>
+            <developerName>description</developerName>
+            <masterLabel>Description</masterLabel>
+            <dataType>Text</dataType>
+        </fields>
+        <fields>
+            <developerName>fileName</developerName>
+            <masterLabel>File Name</masterLabel>
+            <dataType>Text</dataType>
+        </fields>
+        <fields>
+            <developerName>mimeType</developerName>
+            <masterLabel>MIME Type</masterLabel>
+            <dataType>Text</dataType>
+        </fields>
+        <fields>
+            <developerName>width</developerName>
+            <masterLabel>Width</masterLabel>
+            <dataType>Number</dataType>
+        </fields>
+        <fields>
+            <developerName>height</developerName>
+            <masterLabel>Height</masterLabel>
+            <dataType>Number</dataType>
+        </fields>
+        <fields>
+            <developerName>tags</developerName>
+            <masterLabel>Tags</masterLabel>
+            <dataType>Text</dataType>
+            <description>Comma-separated tag IDs. The webhook payload template flattens Contentful's metadata.tags[].sys.id array into this string.</description>
+        </fields>
+        <fields>
+            <developerName>eventType</developerName>
+            <masterLabel>Event Type</masterLabel>
+            <dataType>Text</dataType>
+            <description>Contentful topic string, e.g. ContentManagement.Asset.publish, ContentManagement.Asset.unpublish, ContentManagement.Asset.delete.</description>
+        </fields>
+        <fields>
+            <developerName>updatedAt</developerName>
+            <masterLabel>Updated At</masterLabel>
+            <dataType>DateTime</dataType>
+        </fields>
+    </ingestionSchema>
+</MktDataStream>

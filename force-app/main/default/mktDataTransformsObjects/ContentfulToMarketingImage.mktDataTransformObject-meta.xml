@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MktDataTransformObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <masterLabel>Contentful → MarketingImage</masterLabel>
+    <developerName>ContentfulToMarketingImage</developerName>
+    <description>Maps the ContentfulAssetWebhook DLO onto the MarketingImage DMO. Derives isActive from the Contentful topic (publish → true, unpublish/delete → false) and parses locale, campaign, and visualStyle from the tags string.</description>
+    <sourceDataStream>ContentfulAssetWebhook</sourceDataStream>
+    <targetDataModel>MarketingImage__dlm</targetDataModel>
+    <fieldMappings>
+        <sourceField>assetId</sourceField>
+        <targetField>assetId__c</targetField>
+    </fieldMappings>
+    <fieldMappings>
+        <sourceField>url</sourceField>
+        <targetField>url__c</targetField>
+    </fieldMappings>
+    <fieldMappings>
+        <sourceField>title</sourceField>
+        <targetField>title__c</targetField>
+        <notes>Also used as altText fallback when no altText tag is present.</notes>
+    </fieldMappings>
+    <fieldMappings>
+        <sourceField>title</sourceField>
+        <targetField>altText__c</targetField>
+    </fieldMappings>
+    <fieldMappings>
+        <sourceField>description</sourceField>
+        <targetField>description__c</targetField>
+    </fieldMappings>
+    <fieldMappings>
+        <sourceField>tags</sourceField>
+        <targetField>tags__c</targetField>
+    </fieldMappings>
+    <fieldMappings>
+        <sourceField>mimeType</sourceField>
+        <targetField>mimeType__c</targetField>
+    </fieldMappings>
+    <fieldMappings>
+        <sourceField>width</sourceField>
+        <targetField>width__c</targetField>
+    </fieldMappings>
+    <fieldMappings>
+        <sourceField>height</sourceField>
+        <targetField>height__c</targetField>
+    </fieldMappings>
+    <fieldMappings>
+        <sourceField>updatedAt</sourceField>
+        <targetField>updatedAt__c</targetField>
+    </fieldMappings>
+    <derivedFieldMappings>
+        <targetField>isActive__c</targetField>
+        <expression>IF(CONTAINS(eventType, "publish"), true, false)</expression>
+        <notes>eventType "ContentManagement.Asset.publish" → true; unpublish/delete → false.</notes>
+    </derivedFieldMappings>
+    <derivedFieldMappings>
+        <targetField>locale__c</targetField>
+        <expression>REGEX_EXTRACT(tags, "locale_([A-Za-z_]+)", 1)</expression>
+        <notes>Extracts e.g. en_US from a tag of the form "locale_en_US".</notes>
+    </derivedFieldMappings>
+    <derivedFieldMappings>
+        <targetField>campaign__c</targetField>
+        <expression>REGEX_EXTRACT(tags, "campaign_([A-Za-z0-9_]+)", 1)</expression>
+    </derivedFieldMappings>
+    <derivedFieldMappings>
+        <targetField>visualStyle__c</targetField>
+        <expression>REGEX_EXTRACT(tags, "visualStyle_([A-Za-z0-9_]+)", 1)</expression>
+    </derivedFieldMappings>
+</MktDataTransformObject>

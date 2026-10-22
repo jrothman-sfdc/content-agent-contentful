@@ -1,0 +1,19 @@
+{
+  "name": "content-agent-contentful-scripts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Scripts for seeding Contentful and verifying the Data Cloud DMO.",
+  "type": "module",
+  "scripts": {
+    "seed": "node seed-contentful-assets.js",
+    "seed:dry-run": "node seed-contentful-assets.js --dry-run"
+  },
+  "dependencies": {
+    "contentful-management": "^11.42.0",
+    "dotenv": "^16.4.5",
+    "mime-types": "^2.1.35"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

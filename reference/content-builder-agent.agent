@@ -1,0 +1,215 @@
+# Reference AgentScript for the Content-Builder-with-Image-Selection agent.
+#
+# NOT DEPLOYED. This file is the canonical target spec you mirror in the
+# Agent Builder UI (see docs/agent-build-runbook.md). The historical CLI
+# mis-typing issue is why we don't deploy this directly.
+#
+# Differences from the original migrated sfdc_cms__ContentBuilderAgent:
+#   1. New 5th action: SelectMarketingImage.
+#   2. CreateOrRefineSectionWithContent reasoning instructions updated to
+#      call SelectMarketingImage for image components in generated sections.
+#   3. Optional session context variables Campaign and VisualStyle (external
+#      visibility) to let the host app override agent inference.
+
+system:
+    instructions: "You are an AI Agent."
+    messages:
+        welcome: "Hi, I'm your content builder agent! I use generative AI to help you draft new content and refine existing content within the content builder, and I can autonomously select images from the marketing library when generating sections. I may make mistakes, so check my work. What can I help you with?"
+        error: "Something went wrong. Try again later or ask your Salesforce admin for help."
+
+config:
+    agent_label: "CMS Content Agent (Image POC)"
+    agent_template: "sfdc_cms__ContentBuilderAgent"
+    agent_type: "AgentforceEmployeeAgent"
+    description: "Clone of the stock CMS Content Builder agent plus an autonomous image-selection action backed by a Data Cloud catalog of Contentful assets."
+    developer_name: "CMS_Content_Agent_Image_POC"
+
+variables:
+    EndUserId: linked string
+        source: @MessagingSession.MessagingEndUserId
+    RoutableId: linked string
+        source: @MessagingSession.Id
+    ContactId: linked string
+        source: @MessagingEndUser.ContactId
+    EndUserLanguage: linked string
+        source: @MessagingSession.EndUserLanguage
+    ChannelType: linked string
+        source: @MessagingSession.ChannelType
+    VerifiedCustomerId: mutable string
+        visibility: "Internal"
+    TargetLanguage: mutable string
+        description: "The locale of the language variant currently loaded on the canvas. Drives both copy language and image locale filter."
+        visibility: "External"
+    TargetLanguages: mutable string
+        visibility: "External"
+    Campaign: mutable string
+        description: "Optional campaign hint from the host app. When present, overrides inference and is passed to SelectMarketingImage as its campaign filter. e.g. summer_sale, holiday."
+        visibility: "External"
+    VisualStyle: mutable string
+        description: "Optional visual style hint from the host app. When present, overrides inference and is passed to SelectMarketingImage as its visualStyle filter. e.g. editorial, product_shot."
+        visibility: "External"
+
+language:
+    additional_locales: "en_GB"
+    default_locale: "en_US"
+    all_additional_locales: False
+
+knowledge:
+    citations_enabled: False
+
+start_agent topic_selector:
+    description: "Welcome the user and determine the appropriate topic based on user input"
+    label: "Topic Selector"
+    reasoning:
+        instructions: ->
+            | Select the best tool to call based on conversation history and user's intent.
+        actions:
+            go_to_ContentCreation: @utils.transition to @topic.ContentCreation
+
+topic ContentCreation:
+    description: "Interacts with the user to draft, revise, or translate content from Salesforce CMS in the content builder."
+    label: "Content Creation"
+    reasoning:
+        instructions: ->
+            | Your job is to handle requests to generate new, refine existing, or translate pieces of content in the content builder. This could be tasks such as drafting subject lines or preheaders, optimizing SMS messages, generating headings, paragraphs, and button text, creating blocks or components with or without corresponding text for emails or landing pages, and translating content into one or more target languages. The agent can also autonomously select images from the marketing image catalog.
+              Additional instructions follow:
+              - Never use this topic to draft or refine Sales emails.
+              - If a specific property or element for generation cannot be identified, encourage the user to make a more explicit request.
+              - If the user asks for a refinement, use the conversation history to identify the previous user request that the refinement pertains to, and include that request in the 'userInput' input variable if applicable.
+              - If a user uses "this" in a request (for example, "Draft a different version of this paragraph," or "Revise the text in this section") the user likely intends to modify the text in the currently selected component or the most recently generated section. Do not ask the user to provide a value.
+              - When CreateOrRefineSectionWithContent generates a section that includes an image component, call SelectMarketingImage BEFORE returning the final JSON patch. Then substitute the returned assetUrl into the image component's src and the returned altText into the image's alt field in blockValue.
+        actions:
+            DraftOrRefineTextForProperty: @actions.DraftOrRefineTextForProperty
+                with contentKey=...
+                with contentTypeFqn=...
+                with userInput=...
+                with targetAudience=...
+                with keyMessage=...
+                with personality=...
+                with identity=...
+                with currentSelection=...
+                with targetLanguage=...
+            CreateOrRefineSectionWithContent: @actions.CreateOrRefineSectionWithContent
+                with contentKey=...
+                with contentTypeFqn=...
+                with userInput=...
+                with targetAudience=...
+                with keyMessage=...
+                with personality=...
+                with identity=...
+                with generatedSectionId=...
+                with targetLanguage=...
+            CreateOrRefineSection: @actions.CreateOrRefineSection
+                with contentKey=...
+                with contentTypeFqn=...
+                with userInput=...
+                with targetAudience=...
+                with keyMessage=...
+                with personality=...
+                with identity=...
+                with generatedSectionId=...
+                with targetLanguage=...
+            TranslateTextContent: @actions.TranslateTextContent
+                with contentKey=...
+                with contentTypeFqn=...
+                with userInput=...
+                with targetLanguages=...
+                with currentSelection=...
+            SelectMarketingImage: @actions.SelectMarketingImage
+                with keyMessage=...
+                with contextDescription=...
+                with locale=...
+                with campaign=...
+                with visualStyle=...
+    actions:
+        # ===== Carried over from the migrated agent (unchanged) =====
+        DraftOrRefineTextForProperty:
+            # ... see original migrated agent for full definition ...
+            label: "Marketing Cloud: Draft Content"
+            source: "sfdc_cms__DraftOrRefineTextForProperty"
+            target: "standardInvocableAction://generateOrRefineTextForProperty"
+        CreateOrRefineSectionWithContent:
+            # UPDATED reasoning only; action signature unchanged.
+            label: "Marketing Cloud: Create Section with Content"
+            source: "sfdc_cms__CreateOrRefineSectionWithContent"
+            target: "standardInvocableAction://createOrRefineSectionWithContent"
+            reasoning:
+                instructions: ->
+                    | Call this action to generate sections with text content. If the resulting section includes
+                      an image component (identified in blockValue as a component with type matching /image/i), you MUST
+                      then call SelectMarketingImage to populate it. Map:
+                        - keyMessage: the keyMessage you passed into this action
+                        - contextDescription: the generated section's heading + first paragraph (as context for ranking)
+                        - locale: the TargetLanguage session variable, verbatim (do not transform)
+                        - campaign: the Campaign session variable if set; otherwise infer from userInput / keyMessage if a clear campaign is named (e.g. "summer sale" → summer_sale); otherwise omit
+                        - visualStyle: the VisualStyle session variable if set; otherwise infer from tone cues in userInput / personality (e.g. "editorial" → editorial, "clean product shot" → product_shot); otherwise omit
+                      Then set the image component's src = assetUrl and alt = altText in blockValue before returning the JSON Patch to the host.
+        CreateOrRefineSection:
+            label: "Marketing Cloud: Create Section"
+            source: "sfdc_cms__CreateOrRefineSection"
+            target: "standardInvocableAction://createOrRefineSectionWithContent"
+        TranslateTextContent:
+            label: "Marketing Cloud: Translate Text Content"
+            source: "sfdc_cms__TranslateTextContent"
+            target: "standardInvocableAction://translateTextContent"
+
+        # ===== NEW =====
+        SelectMarketingImage:
+            description: "Selects the best-matching marketing image from the Data Cloud marketing image catalog using a hybrid filter + semantic ranking retriever. Call this when a section being generated or refined includes an image component and the host app has not provided a specific asset. Returns the asset URL and alt text to be injected into the generated blockValue. If no match is found, outputs are empty strings and the caller should leave the image component slot empty."
+            label: "Marketing Cloud: Select Marketing Image"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            source: "SelectMarketingImage"
+            target: "apexInvocableAction://SelectMarketingImage"
+            inputs:
+                "keyMessage": string
+                    description: "A concise statement or phrase describing what the image should convey. Drives semantic ranking. Required."
+                    label: "Key Message"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "contextDescription": string
+                    description: "Optional extra semantic signal, e.g. the section's heading plus the first paragraph of generated copy."
+                    label: "Context Description"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "locale": string
+                    description: "Locale filter, verbatim from the TargetLanguage session variable. e.g. en_US. Omit for any locale."
+                    label: "Locale"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "campaign": string
+                    description: "Campaign filter. e.g. summer_sale. Prefer the Campaign session variable when set; otherwise infer or omit."
+                    label: "Campaign"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "visualStyle": string
+                    description: "Visual style filter. e.g. editorial, product_shot, lifestyle, bright, muted. Prefer the VisualStyle session variable when set; otherwise infer from tone cues or omit."
+                    label: "Visual Style"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+            outputs:
+                "assetUrl": string
+                    label: "Asset URL"
+                    is_displayable: True
+                    is_used_by_planner: True
+                "altText": string
+                    label: "Alt Text"
+                    is_displayable: True
+                    is_used_by_planner: True
+                "assetId": string
+                    label: "Asset ID"
+                    is_displayable: False
+                    is_used_by_planner: True
+                "campaign": string
+                    label: "Selected Campaign"
+                    is_displayable: True
+                    is_used_by_planner: False
+                "visualStyle": string
+                    label: "Selected Visual Style"
+                    is_displayable: True
+                    is_used_by_planner: False

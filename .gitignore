@@ -1,0 +1,21 @@
+# Salesforce / SFDX
+.sfdx/
+.sf/
+.vscode/
+.idea/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (for the Contentful seed script)
+node_modules/
+npm-debug.log*
+.env
+.env.local
+
+# Secrets
+*.key
+*.pem
+auth.json

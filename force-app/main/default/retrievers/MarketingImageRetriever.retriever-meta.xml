@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Retriever xmlns="http://soap.sforce.com/2006/04/metadata">
+    <masterLabel>Marketing Image Retriever</masterLabel>
+    <developerName>MarketingImageRetriever</developerName>
+    <description>Hybrid retriever over MarketingImage__dlm. Applies structured filters on isActive, locale, campaign, visualStyle, then ranks remaining candidates semantically on title + description + tags using the semantic index.</description>
+    <sourceDataModel>MarketingImage__dlm</sourceDataModel>
+    <topK>1</topK>
+    <staticFilters>
+        <field>isActive__c</field>
+        <operator>EQUALS</operator>
+        <value>true</value>
+    </staticFilters>
+    <parameterFilters>
+        <name>locale</name>
+        <field>locale__c</field>
+        <operator>EQUALS</operator>
+        <isRequired>false</isRequired>
+    </parameterFilters>
+    <parameterFilters>
+        <name>campaign</name>
+        <field>campaign__c</field>
+        <operator>EQUALS</operator>
+        <isRequired>false</isRequired>
+    </parameterFilters>
+    <parameterFilters>
+        <name>visualStyle</name>
+        <field>visualStyle__c</field>
+        <operator>EQUALS</operator>
+        <isRequired>false</isRequired>
+    </parameterFilters>
+    <semanticRanking>
+        <indexedFields>
+            <field>title__c</field>
+            <field>description__c</field>
+            <field>tags__c</field>
+        </indexedFields>
+        <queryParameter>semanticQuery</queryParameter>
+        <notes>semanticQuery is composed of keyMessage + optional contextDescription by the SelectMarketingImage invocable before calling.</notes>
+    </semanticRanking>
+    <outputFields>
+        <field>assetId__c</field>
+        <field>url__c</field>
+        <field>altText__c</field>
+        <field>campaign__c</field>
+        <field>visualStyle__c</field>
+    </outputFields>
+</Retriever>

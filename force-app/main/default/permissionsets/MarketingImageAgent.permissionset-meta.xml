@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Marketing Image Agent</label>
+    <description>Grants the Agentforce agent user access to the SelectMarketingImage invocable, the MarketingImage DMO, and the retriever. Minimum viable permissions for the POC.</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <license>Salesforce</license>
+    <classAccesses>
+        <apexClass>SelectMarketingImage</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>DataCloudRetrieverClient</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+</PermissionSet>

@@ -1,0 +1,50 @@
+{
+  "_comment": "Copy this file to manifest.json and edit. One row per demo asset. Values for locale/campaign/visualStyle become Contentful tags like locale_en_US, campaign_summer_sale, visualStyle_editorial. assetKey is the stable Contentful sys.id used as the DMO primary key — keep it short and kebab-free (letters, numbers, _, -).",
+  "assets": [
+    {
+      "assetKey": "summer-sale-beach-en-US-editorial",
+      "file": "summer-sale-beach-editorial.jpg",
+      "title": "Summer sale hero — beach at golden hour",
+      "description": "A promotional banner for a summer sale. Editorial style, warm tones, model walking on beach at sunset. Suitable for lifestyle brands.",
+      "locale": "en_US",
+      "campaign": "summer_sale",
+      "visualStyle": "editorial"
+    },
+    {
+      "assetKey": "summer-sale-product-en-US-productShot",
+      "file": "summer-sale-product-shot.jpg",
+      "title": "Summer sale — bright product shot",
+      "description": "Clean studio product photography on white background. Bright, high-key lighting. For promotional emails highlighting a specific SKU.",
+      "locale": "en_US",
+      "campaign": "summer_sale",
+      "visualStyle": "product_shot"
+    },
+    {
+      "assetKey": "holiday-cozy-en-US-editorial",
+      "file": "holiday-cozy-editorial.jpg",
+      "title": "Holiday — cozy fireside",
+      "description": "Warm, candlelit holiday scene. Editorial feel, muted palette, suited for seasonal campaigns and gift-guide hero sections.",
+      "locale": "en_US",
+      "campaign": "holiday",
+      "visualStyle": "editorial"
+    },
+    {
+      "assetKey": "holiday-giftbox-en-US-productShot",
+      "file": "holiday-giftbox-product.jpg",
+      "title": "Holiday — gift box product shot",
+      "description": "Studio shot of a wrapped gift box on a solid background. Clean, bright, ideal for product-forward holiday emails.",
+      "locale": "en_US",
+      "campaign": "holiday",
+      "visualStyle": "product_shot"
+    },
+    {
+      "assetKey": "summer-sale-beach-en-GB-editorial",
+      "file": "summer-sale-beach-editorial-uk.jpg",
+      "title": "Summer sale — British seaside editorial",
+      "description": "Promotional editorial image set at a British seaside town. Softer light, overcast tones. Suitable for en-GB summer campaigns.",
+      "locale": "en_GB",
+      "campaign": "summer_sale",
+      "visualStyle": "editorial"
+    }
+  ]
+}
