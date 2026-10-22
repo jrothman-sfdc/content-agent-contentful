@@ -1,20 +1,25 @@
 # Agent build runbook (manual, in Agent Builder UI)
 
-The agent is built manually in the Agent Builder UI because the Salesforce CLI historically mis-types `AgentforceEmployeeAgent` templates when deployed from source. This doc walks you through mirroring `reference/content-builder-agent.agent` in the UI.
+The agent is built manually in the Agent Builder UI. The Salesforce CLI historically mis-types `AgentforceEmployeeAgent` templates when deployed from source, so this doc walks you through mirroring `reference/content-builder-agent.agent` by hand.
+
+Agentforce **does not currently support cloning existing agents** either, so the agent is built from scratch and the stock CMS Content Builder agent's actions are re-added manually. The underlying invocable actions are the Marketing-Cloud-provided ones; you're wiring them into a new agent, not duplicating code.
 
 **Before you start:**
 - Metadata deployed (`sf project deploy start`).
 - Permission set `MarketingImageAgent` assigned to your user AND the agent user.
-- Data Cloud retriever confirmed returning results against seeded assets.
-- Render spike completed — see `docs/troubleshooting.md`.
+- `Contentful_Config__mdt.Default.Provider_Class__c` set to a working provider (`DirectContentfulProvider` or `DataCloudCatalogProvider`).
+- For `DirectContentfulProvider`: Space ID and CDA Token filled in on the same record.
+- For `DataCloudCatalogProvider`: Data Cloud retriever confirmed returning results against seeded assets.
 
-## Step 1 — Clone the stock agent
+## Step 1 — Create a new agent from scratch
 
-Setup → Agentforce → **Agents** → find `CMS Content Agent` (the stock agent, template `sfdc_cms__ContentBuilderAgent`) → **Clone**.
+Setup → Agentforce → **Agents** → **New Agent**.
 
+- **Agent Type:** `Agentforce Employee Agent` (match the stock CMS Content Agent's type exactly)
 - **Agent Label:** `CMS Content Agent (Image POC)`
 - **API Name:** `CMS_Content_Agent_Image_POC`
-- **Description:** `Clone of the stock CMS Content Builder agent plus an autonomous image-selection action backed by a Data Cloud catalog of Contentful assets.`
+- **Description:** `A content-builder agent that drafts, refines, and translates MCA content, with autonomous image selection from the Contentful library (or a Data Cloud catalog).`
+- **Welcome message:** `Hi, I'm your content builder agent! I use generative AI to help you draft new content and refine existing content within the content builder, and I can autonomously select images from the marketing library when generating sections. I may make mistakes, so check my work. What can I help you with?`
 
 Save. **Do NOT activate yet.**
 
@@ -52,9 +57,22 @@ The `imageBlockJson` output is the key one — it's a ready-to-splice `lightning
 
 Save.
 
-## Step 4 — Attach the action to the ContentCreation topic
+## Step 4 — Create the ContentCreation topic and attach all 5 actions
 
-Agent detail → Topics → **ContentCreation** → Actions → **Add existing** → select `Marketing Cloud: Select Marketing Image`.
+Agent detail → **Topics** → **New Topic**:
+
+- **Label:** `Content Creation`
+- **API Name:** `ContentCreation`
+- **Description:** `Interacts with the user to draft, revise, or translate content from Salesforce CMS in the content builder.`
+- **Topic reasoning instructions:** paste the ContentCreation topic reasoning from `reference/content-builder-agent.agent` (search for `topic ContentCreation` → `reasoning:` → `instructions:`). It covers when to draft vs refine vs translate, and the "this" resolution rule.
+
+Then attach all 5 actions you added in Steps 2b and 3:
+
+- Marketing Cloud: Draft Content
+- Marketing Cloud: Create Section with Content
+- Marketing Cloud: Create Section
+- Marketing Cloud: Translate Text Content
+- Marketing Cloud: Select Marketing Image
 
 ## Step 5 — Update the ContentCreation topic reasoning instructions
 
