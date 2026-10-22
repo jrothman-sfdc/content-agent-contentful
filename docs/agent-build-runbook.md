@@ -44,9 +44,11 @@ For each input (`keyMessage`, `contextDescription`, `locale`, `campaign`, `visua
 - `is_required`: true only for `keyMessage`.
 - `is_user_input`: false (the planner fills these — they do not come directly from user text).
 
-For each output (`assetUrl`, `altText`, `assetId`, `campaign`, `visualStyle`):
-- `is_displayable`: true for `assetUrl`, `altText`, `campaign`, `visualStyle`. False for `assetId`.
-- `is_used_by_planner`: true for `assetUrl`, `altText`, `assetId`.
+For each output (`assetUrl`, `altText`, `assetId`, `campaign`, `visualStyle`, `imageBlockJson`):
+- `is_displayable`: true for `assetUrl`, `altText`, `campaign`, `visualStyle`. False for `assetId` and `imageBlockJson`.
+- `is_used_by_planner`: true for `assetUrl`, `altText`, `assetId`, `imageBlockJson`.
+
+The `imageBlockJson` output is the key one — it's a ready-to-splice `lightning/html` block (serialized JSON) that the agent injects into `blockValue`. The agent does NOT emit a `lightning/image` block for externally-sourced images, because the MCA schema rejects them.
 
 Save.
 
@@ -56,22 +58,25 @@ Agent detail → Topics → **ContentCreation** → Actions → **Add existing**
 
 ## Step 5 — Update the ContentCreation topic reasoning instructions
 
-In the topic's reasoning instructions, append the following paragraph:
+In the topic's reasoning instructions, append:
 
-> When CreateOrRefineSectionWithContent generates a section that includes an image component, call SelectMarketingImage BEFORE returning the final JSON patch. Then substitute the returned assetUrl into the image component's src and the returned altText into the image's alt field in blockValue.
+> When CreateOrRefineSectionWithContent generates a section that needs an image, call SelectMarketingImage BEFORE returning the final JSON patch. The MCA email schema rejects external URLs on lightning/image blocks (imageInfo.source.type must equal "imageReference" with a Salesforce CMS asset ref), so for externally-sourced images we use the lightning/html block that SelectMarketingImage returns as imageBlockJson.
 
 ## Step 6 — Update CreateOrRefineSectionWithContent action-specific instructions
 
 In the action's "when to use" / reasoning text, add:
 
-> If the resulting section includes an image component, you MUST then call SelectMarketingImage to populate it. Map:
+> If the resulting section needs an image, you MUST call SelectMarketingImage FIRST and then splice its imageBlockJson output into blockValue. Map SelectMarketingImage inputs:
 > - `keyMessage`: the keyMessage you passed into this action
 > - `contextDescription`: the generated section's heading + first paragraph
 > - `locale`: the `TargetLanguage` session variable, verbatim (do not transform)
 > - `campaign`: the `Campaign` session variable if set; otherwise infer from `userInput` / `keyMessage` if a clear campaign is named (e.g. "summer sale" → `summer_sale`); otherwise omit
 > - `visualStyle`: the `VisualStyle` session variable if set; otherwise infer from tone cues in `userInput` / `personality` (e.g. "editorial" → `editorial`, "clean product shot" → `product_shot`); otherwise omit
 >
-> Then set the image component's src = `assetUrl` and alt = `altText` in `blockValue` before returning the JSON Patch to the host.
+> Then in blockValue:
+> - If the generated section contains any `lightning/image` placeholder, REMOVE it (the canvas rejects it at save time).
+> - Parse `SelectMarketingImage`'s `imageBlockJson` into an object and insert it into the same column where the placeholder was, or append to the section's first column if no placeholder existed.
+> - If `imageBlockJson` is empty (no catalog match), leave the section without an image rather than inserting a broken block.
 
 ## Step 7 — Activate & smoke test
 

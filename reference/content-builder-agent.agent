@@ -135,15 +135,32 @@ topic ContentCreation:
             target: "standardInvocableAction://createOrRefineSectionWithContent"
             reasoning:
                 instructions: ->
-                    | Call this action to generate sections with text content. If the resulting section includes
-                      an image component (identified in blockValue as a component with type matching /image/i), you MUST
-                      then call SelectMarketingImage to populate it. Map:
+                    | Call this action to generate sections with text content. If the resulting section needs
+                      an image, you MUST call SelectMarketingImage FIRST, then splice its ready-to-use image
+                      block into blockValue. Why: the MCA email schema rejects external URLs on lightning/image
+                      blocks (imageInfo.source.type must equal "imageReference" with a Salesforce CMS asset ref),
+                      so we never emit lightning/image for externally-sourced images. SelectMarketingImage
+                      returns imageBlockJson, which is a valid lightning/html block carrying the image as a raw
+                      <img> tag — the pattern that is validated to render and save in MCA emails.
+
+                      SelectMarketingImage input mapping:
                         - keyMessage: the keyMessage you passed into this action
                         - contextDescription: the generated section's heading + first paragraph (as context for ranking)
                         - locale: the TargetLanguage session variable, verbatim (do not transform)
-                        - campaign: the Campaign session variable if set; otherwise infer from userInput / keyMessage if a clear campaign is named (e.g. "summer sale" → summer_sale); otherwise omit
-                        - visualStyle: the VisualStyle session variable if set; otherwise infer from tone cues in userInput / personality (e.g. "editorial" → editorial, "clean product shot" → product_shot); otherwise omit
-                      Then set the image component's src = assetUrl and alt = altText in blockValue before returning the JSON Patch to the host.
+                        - campaign: the Campaign session variable if set; otherwise infer from userInput /
+                          keyMessage if a clear campaign is named (e.g. "summer sale" → summer_sale); otherwise omit
+                        - visualStyle: the VisualStyle session variable if set; otherwise infer from tone cues
+                          in userInput / personality (e.g. "editorial" → editorial, "clean product shot" →
+                          product_shot); otherwise omit
+
+                      Then, in the blockValue JSON Patch you return:
+                        - If the generated section already contains a lightning/image placeholder (which the
+                          canvas would reject), REMOVE it.
+                        - Parse SelectMarketingImage's imageBlockJson into an object and insert it into the
+                          same column where the removed placeholder was, or append to the section's first
+                          column if none existed.
+                        - If SelectMarketingImage returns an empty imageBlockJson, leave the section without
+                          an image rather than inserting a broken block.
         CreateOrRefineSection:
             label: "Marketing Cloud: Create Section"
             source: "sfdc_cms__CreateOrRefineSection"
@@ -155,7 +172,7 @@ topic ContentCreation:
 
         # ===== NEW =====
         SelectMarketingImage:
-            description: "Selects the best-matching marketing image from the Data Cloud marketing image catalog using a hybrid filter + semantic ranking retriever. Call this when a section being generated or refined includes an image component and the host app has not provided a specific asset. Returns the asset URL and alt text to be injected into the generated blockValue. If no match is found, outputs are empty strings and the caller should leave the image component slot empty."
+            description: "Selects the best-matching marketing image from the Data Cloud marketing image catalog using a hybrid filter + semantic ranking retriever. Call this when a section being generated or refined needs an image. Returns the asset URL, alt text, and a ready-to-inject lightning/html block (imageBlockJson) that the agent splices into blockValue. If no match is found, imageBlockJson is empty and the caller should leave the section without an image rather than inserting a broken block."
             label: "Marketing Cloud: Select Marketing Image"
             require_user_confirmation: False
             include_in_progress_indicator: True
@@ -213,3 +230,8 @@ topic ContentCreation:
                     label: "Selected Visual Style"
                     is_displayable: True
                     is_used_by_planner: False
+                "imageBlockJson": string
+                    description: "A ready-to-inject lightning/html block (serialized JSON) wrapping the selected image as an <img> tag. Parse and splice into blockValue in CreateOrRefineSectionWithContent instead of emitting a lightning/image block (which would be rejected by the MCA schema)."
+                    label: "Image Block JSON"
+                    is_displayable: False
+                    is_used_by_planner: True
