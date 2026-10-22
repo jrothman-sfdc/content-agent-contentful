@@ -1,0 +1,395 @@
+system:
+    instructions: "You are an AI content-builder agent for Marketing Cloud Advanced. You draft, refine, and translate email and landing-page content, and you can autonomously select images from the Contentful marketing library when generating sections. Be concise and professional."
+    messages:
+        welcome: "Hi, I'm your content builder agent! I use generative AI to help you draft new content and refine existing content within the content builder, and I can autonomously select images from the marketing library when generating sections. I may make mistakes, so check my work. What can I help you with?"
+        error: "Something went wrong. Try again later or ask your Salesforce admin for help."
+
+config:
+    developer_name: "CMS_Content_Agent_Image_POC"
+    agent_label: "CMS Content Agent (Image POC)"
+    description: "A content-builder agent that drafts, refines, and translates MCA content, with autonomous image selection from the Contentful library (or a Data Cloud catalog once the sibling content-agent-contentful repo is wired up)."
+    agent_type: "AgentforceEmployeeAgent"
+
+variables:
+    TargetLanguage: mutable string = ""
+        description: "The locale of the language variant currently loaded on the canvas (e.g. en_US). Drives both copy language and image locale filter."
+    TargetLanguages: mutable string = ""
+        description: "Target locale(s) for translation requests (e.g. en_US,fr_FR)."
+    Campaign: mutable string = ""
+        description: "Optional campaign hint from the host app. When present, overrides inference and is passed to SelectMarketingImage as its campaign filter. e.g. summer_sale, holiday."
+    VisualStyle: mutable string = ""
+        description: "Optional visual-style hint from the host app. When present, overrides inference and is passed to SelectMarketingImage as its visualStyle filter. e.g. editorial, product_shot."
+
+language:
+    default_locale: "en_US"
+    additional_locales: "en_GB"
+    all_additional_locales: False
+
+knowledge:
+    citations_enabled: False
+
+start_agent topic_selector:
+    description: "Welcome the user and route to the ContentCreation topic. This agent currently has one topic."
+    reasoning:
+        instructions: ->
+            | Route the user's content-authoring request to the ContentCreation topic.
+        actions:
+            go_content_creation: @utils.transition to @topic.ContentCreation
+                description: "Handle any request to draft, refine, or translate marketing content, or to insert an image."
+
+topic ContentCreation:
+    description: "Interacts with the user to draft, revise, or translate content from Salesforce CMS in the content builder. Handles subject lines, preheaders, SMS, headings, paragraphs, button text, section creation, and translation. Also handles autonomous image selection via the Contentful library when a section needs an image."
+
+    reasoning:
+        instructions: ->
+            | Your job is to handle requests to generate new content, refine existing content, or translate content in the content builder. This includes drafting subject lines or preheaders, optimizing SMS messages, generating headings, paragraphs, and button text, creating blocks or components with or without corresponding text for emails or landing pages, and translating content into one or more target languages.
+
+              Additional guidance:
+              - Never use this topic to draft or refine Sales emails.
+              - If a specific property or element for generation cannot be identified, ask the user to make a more explicit request.
+              - If the user asks for a refinement, use the conversation history to identify the previous request the refinement pertains to, and include that in the userInput field of the action you call.
+              - If the user uses "this" in a request (for example, "Draft a different version of this paragraph" or "Revise the text in this section") the user likely intends to modify the text in the currently selected component or the most recently generated section. Do not ask them to provide a value.
+
+              CRITICAL — handling images in generated sections:
+              When Create_Section_With_Content generates a section that needs an image, you MUST call Select_Marketing_Image FIRST, then splice its imageBlockJson output into blockValue. The MCA email schema rejects external URLs on lightning/image blocks (imageInfo.source.type must equal "imageReference" with a Salesforce CMS asset ref), so for externally-sourced images we use the lightning/html block that Select_Marketing_Image returns.
+
+              Select_Marketing_Image input mapping:
+                - keyMessage: the keyMessage you passed into Create_Section_With_Content
+                - contextDescription: the generated section's heading + first paragraph
+                - locale: the TargetLanguage variable, verbatim
+                - campaign: the Campaign variable if set; otherwise infer from userInput / keyMessage if a clear campaign is named (e.g. "summer sale" -> summer_sale); otherwise omit
+                - visualStyle: the VisualStyle variable if set; otherwise infer from tone cues in userInput (e.g. "editorial" -> editorial, "clean product shot" -> product_shot); otherwise omit
+
+              Then in blockValue:
+                - If the generated section contains any lightning/image placeholder, REMOVE it.
+                - Parse Select_Marketing_Image's imageBlockJson into an object and insert it into the same column where the placeholder was, or append to the section's first column if no placeholder existed.
+                - If imageBlockJson is empty (no catalog match), leave the section without an image rather than inserting a broken block.
+
+        actions:
+            draft_text: @actions.Draft_Or_Refine_Text_For_Property
+                description: "Draft or refine text for a specific property such as a subject line, preheader, heading, paragraph, or button text."
+                with contentKey = ...
+                with contentTypeFqn = ...
+                with userInput = ...
+                with targetAudience = ...
+                with keyMessage = ...
+                with personality = ...
+                with identity = ...
+                with currentSelection = ...
+                with targetLanguage = @variables.TargetLanguage
+
+            create_section_with_content: @actions.Create_Section_With_Content
+                description: "Generate a section with text content (and image, if needed) for emails or landing pages. After calling this, if the section needs an image, call Select_Marketing_Image and splice its imageBlockJson into the generated blockValue before returning."
+                with contentKey = ...
+                with contentTypeFqn = ...
+                with userInput = ...
+                with targetAudience = ...
+                with keyMessage = ...
+                with personality = ...
+                with identity = ...
+                with generatedSectionId = ...
+                with targetLanguage = @variables.TargetLanguage
+
+            create_section: @actions.Create_Section
+                description: "Generate a section structure (columns, image slots, button slots) WITHOUT generating text. Use when the user wants layout scaffolding only."
+                with contentKey = ...
+                with contentTypeFqn = ...
+                with userInput = ...
+                with targetAudience = ...
+                with keyMessage = ...
+                with personality = ...
+                with identity = ...
+                with generatedSectionId = ...
+                with targetLanguage = @variables.TargetLanguage
+
+            translate_text: @actions.Translate_Text_Content
+                description: "Translate existing text content from one language into one or more target languages."
+                with contentKey = ...
+                with contentTypeFqn = ...
+                with userInput = ...
+                with targetLanguages = @variables.TargetLanguages
+                with currentSelection = ...
+
+            select_image: @actions.Select_Marketing_Image
+                description: "Select the best-matching marketing image from the Contentful library for a section being generated or refined. Returns imageBlockJson, a ready-to-splice lightning/html block. Call this BEFORE finalizing a section that needs an image."
+                with keyMessage = ...
+                with contextDescription = ...
+                with locale = @variables.TargetLanguage
+                with campaign = @variables.Campaign
+                with visualStyle = @variables.VisualStyle
+
+    actions:
+        Draft_Or_Refine_Text_For_Property:
+            target: "standardInvocableAction://generateOrRefineTextForProperty"
+            description: "Draft or refine a single text property (subject line, preheader, heading, paragraph, button text) in the content builder. Returns a JSON Patch with the property's new value."
+            label: "Marketing Cloud: Draft Content"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            inputs:
+                contentKey: string
+                    description: "The unique identifier for a piece of saved or unsaved content."
+                    label: "Content Key"
+                    is_required: True
+                contentTypeFqn: string
+                    description: "The content type the user is editing (e.g. email, sms, landingPage)."
+                    label: "Content Type"
+                    is_required: False
+                userInput: string
+                    description: "The complete original user request, verbatim."
+                    label: "User Input"
+                    is_required: True
+                targetAudience: string
+                    description: "The specific audience the generated text is for."
+                    label: "Target Audience"
+                    is_required: False
+                keyMessage: string
+                    description: "A concise statement of the most important information to convey."
+                    label: "Key Message"
+                    is_required: True
+                personality: string
+                    description: "The voice/tone (casual, professional, inquisitive, urgent)."
+                    label: "Tone"
+                    is_required: True
+                identity: string
+                    description: "Brand essence that distinguishes it from competitors."
+                    label: "Brand Identity"
+                    is_required: False
+                currentSelection: string
+                    description: "The currently selected component on the canvas, if any."
+                    label: "Selected Component"
+                    is_required: False
+                targetLanguage: string
+                    description: "Locale code for the output text, from the TargetLanguage variable. Use verbatim."
+                    label: "Target Language"
+                    is_required: False
+            outputs:
+                path: string
+                    description: "JSON Pointer to the property being set."
+                    label: "Path"
+                    is_displayable: True
+                value: string
+                    description: "The generated text value."
+                    label: "Value"
+                    is_displayable: True
+                type: string
+                    description: "Underlying data type of the generated text."
+                    label: "Data Type"
+                    is_displayable: True
+                op: string
+                    description: "JSON Patch operation (add or replace)."
+                    label: "Operation"
+                    is_displayable: False
+
+        Create_Section_With_Content:
+            target: "standardInvocableAction://createOrRefineSectionWithContent"
+            description: "Generate a section with text content for an email or landing page. Returns a JSON Patch that creates the section. If the section needs an image, call Select_Marketing_Image after and splice its imageBlockJson into blockValue."
+            label: "Marketing Cloud: Create Section with Content"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            inputs:
+                contentKey: string
+                    label: "Content Key"
+                    is_required: True
+                contentTypeFqn: string
+                    label: "Content Type"
+                    is_required: False
+                userInput: string
+                    label: "User Input"
+                    is_required: True
+                targetAudience: string
+                    label: "Target Audience"
+                    is_required: False
+                keyMessage: string
+                    label: "Key Message"
+                    is_required: False
+                personality: string
+                    label: "Tone"
+                    is_required: False
+                identity: string
+                    label: "Brand Identity"
+                    is_required: False
+                generatedSectionId: string
+                    label: "Generated Section Id"
+                    is_required: False
+                targetLanguage: string
+                    label: "Target Language"
+                    is_required: False
+            outputs:
+                type: string
+                    label: "Data Type"
+                    is_displayable: True
+                operation: string
+                    label: "Operation"
+                    is_displayable: True
+                parentPath: string
+                    label: "Parent Path"
+                    is_displayable: False
+                precedingSiblingPath: string
+                    label: "Preceding Sibling Path"
+                    is_displayable: False
+                blockValue: string
+                    description: "The JSON structure for the generated section. Splice imageBlockJson from Select_Marketing_Image into this before returning when the section needs an image."
+                    label: "Section with Content Value"
+                    is_displayable: True
+                textValues: string
+                    label: "Text Values"
+                    is_displayable: True
+                statusMessage: string
+                    label: "Status Message"
+                    is_displayable: True
+                replaceSectionId: string
+                    label: "Replace Section Id"
+                    is_displayable: True
+                currentUserInput: string
+                    label: "Current User Input"
+                    is_displayable: True
+
+        Create_Section:
+            target: "standardInvocableAction://createOrRefineSectionWithContent"
+            description: "Generate a section STRUCTURE (columns, image slots, button slots) without generating text. Use for layout-only requests."
+            label: "Marketing Cloud: Create Section"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            inputs:
+                contentKey: string
+                    label: "Content Key"
+                    is_required: True
+                contentTypeFqn: string
+                    label: "Content Type"
+                    is_required: False
+                userInput: string
+                    label: "User Input"
+                    is_required: True
+                targetAudience: string
+                    label: "Target Audience"
+                    is_required: False
+                keyMessage: string
+                    label: "Key Message"
+                    is_required: False
+                personality: string
+                    label: "Tone"
+                    is_required: False
+                identity: string
+                    label: "Brand Identity"
+                    is_required: False
+                generatedSectionId: string
+                    label: "Generated Section Id"
+                    is_required: False
+                targetLanguage: string
+                    label: "Target Language"
+                    is_required: False
+            outputs:
+                type: string
+                    label: "Data Type"
+                    is_displayable: True
+                operation: string
+                    label: "Operation"
+                    is_displayable: True
+                parentPath: string
+                    label: "Parent Path"
+                    is_displayable: False
+                precedingSiblingPath: string
+                    label: "Preceding Sibling Path"
+                    is_displayable: False
+                blockValue: string
+                    label: "Section Value"
+                    is_displayable: True
+                textValues: string
+                    label: "Text Values"
+                    is_displayable: True
+                statusMessage: string
+                    label: "Status Message"
+                    is_displayable: True
+                replaceSectionId: string
+                    label: "Replace Section Id"
+                    is_displayable: True
+                currentUserInput: string
+                    label: "Current User Input"
+                    is_displayable: True
+
+        Translate_Text_Content:
+            target: "standardInvocableAction://translateTextContent"
+            description: "Translate text content in a piece of content from the source language into one or more target languages."
+            label: "Marketing Cloud: Translate Text Content"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            inputs:
+                contentKey: string
+                    label: "Content Key"
+                    is_required: True
+                contentTypeFqn: string
+                    label: "Content Type"
+                    is_required: False
+                userInput: string
+                    label: "User Input"
+                    is_required: True
+                targetLanguages: string
+                    description: "Target locales for translation. From the TargetLanguages variable."
+                    label: "Target Languages"
+                    is_required: True
+                currentSelection: string
+                    label: "Current Selection"
+                    is_required: False
+            outputs:
+                operation: string
+                    label: "Operation"
+                    is_displayable: True
+                translatedContent: string
+                    label: "Translated Content"
+                    is_displayable: True
+                statusMessage: string
+                    label: "Status Message"
+                    is_displayable: True
+
+        Select_Marketing_Image:
+            target: "apex://SelectMarketingImage"
+            description: "Select the best-matching marketing image from the Contentful library using a hybrid filter + semantic ranking retriever. Call this when a section being generated or refined needs an image. Returns imageBlockJson — a ready-to-splice lightning/html block (serialized JSON) that goes into blockValue. If no match is found, imageBlockJson is empty and the caller should leave the section without an image rather than inserting a broken block."
+            label: "Marketing Cloud: Select Marketing Image"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            inputs:
+                keyMessage: string
+                    description: "A concise statement of what the image should convey. Drives semantic ranking."
+                    label: "Key Message"
+                    is_required: True
+                contextDescription: string
+                    description: "Optional extra semantic signal, e.g. the section's heading plus the first paragraph of generated copy."
+                    label: "Context Description"
+                    is_required: False
+                locale: string
+                    description: "Locale filter, verbatim from the TargetLanguage variable. e.g. en_US. Omit for any locale."
+                    label: "Locale"
+                    is_required: False
+                campaign: string
+                    description: "Campaign filter. e.g. summer_sale. Prefer the Campaign variable; otherwise infer from userInput or omit."
+                    label: "Campaign"
+                    is_required: False
+                visualStyle: string
+                    description: "Visual style filter. e.g. editorial, product_shot, lifestyle. Prefer the VisualStyle variable; otherwise infer from tone cues or omit."
+                    label: "Visual Style"
+                    is_required: False
+            outputs:
+                assetUrl: string
+                    description: "CDN URL of the selected image. Empty string if no match."
+                    label: "Asset URL"
+                    is_displayable: True
+                altText: string
+                    description: "Alt text for the selected image."
+                    label: "Alt Text"
+                    is_displayable: True
+                assetId: string
+                    description: "Contentful sys.id of the selected image. Debug/audit only."
+                    label: "Asset ID"
+                    is_displayable: False
+                campaign: string
+                    description: "Campaign variant of the asset actually returned."
+                    label: "Selected Campaign"
+                    is_displayable: True
+                visualStyle: string
+                    description: "Visual-style variant of the asset actually returned."
+                    label: "Selected Visual Style"
+                    is_displayable: True
+                imageBlockJson: string
+                    description: "A ready-to-inject lightning/html block (serialized JSON) wrapping the selected image as an <img> tag. Parse and splice into blockValue in Create_Section_With_Content."
+                    label: "Image Block JSON"
+                    is_displayable: False
