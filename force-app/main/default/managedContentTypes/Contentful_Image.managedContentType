@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ManagedContentType xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>An AI-selected image sourced from Contentful via the Data Cloud MarketingImage catalog. Carries the external CDN URL directly, so the Agentforce content-builder agent can inject a selected image without needing a Salesforce CMS asset record.</description>
+    <developerName>Contentful_Image</developerName>
+    <isMetadataContent>false</isMetadataContent>
+    <managedContentNodeTypes>
+        <helpText>Short internal label for this image, used as the content item's name. Not shown to end users.</helpText>
+        <isLocalizable>false</isLocalizable>
+        <isRequired>true</isRequired>
+        <nodeLabel>Name</nodeLabel>
+        <nodeName>title</nodeName>
+        <nodeType>NAMEFIELD</nodeType>
+    </managedContentNodeTypes>
+    <managedContentNodeTypes>
+        <helpText>Contentful CDN URL of the selected image. Written by the SelectMarketingImage agent action; must be a fully-qualified https URL.</helpText>
+        <isLocalizable>false</isLocalizable>
+        <isRequired>true</isRequired>
+        <nodeLabel>Asset URL</nodeLabel>
+        <nodeName>assetUrl</nodeName>
+        <nodeType>URL</nodeType>
+        <placeholderText>https://images.ctfassets.net/...</placeholderText>
+    </managedContentNodeTypes>
+    <managedContentNodeTypes>
+        <helpText>Alt text for the image, used for accessibility and when the image fails to load.</helpText>
+        <isLocalizable>true</isLocalizable>
+        <isRequired>true</isRequired>
+        <nodeLabel>Alt Text</nodeLabel>
+        <nodeName>altText</nodeName>
+        <nodeType>TEXT</nodeType>
+    </managedContentNodeTypes>
+    <managedContentNodeTypes>
+        <helpText>Contentful asset ID (sys.id) of the selected image. Audit/debug only; not rendered.</helpText>
+        <isLocalizable>false</isLocalizable>
+        <isRequired>false</isRequired>
+        <nodeLabel>Asset ID</nodeLabel>
+        <nodeName>assetId</nodeName>
+        <nodeType>TEXT</nodeType>
+    </managedContentNodeTypes>
+    <managedContentNodeTypes>
+        <helpText>Campaign variant tag of the asset actually selected. Audit/debug only.</helpText>
+        <isLocalizable>false</isLocalizable>
+        <isRequired>false</isRequired>
+        <nodeLabel>Campaign</nodeLabel>
+        <nodeName>campaign</nodeName>
+        <nodeType>TEXT</nodeType>
+    </managedContentNodeTypes>
+    <managedContentNodeTypes>
+        <helpText>Visual style variant tag of the asset actually selected. Audit/debug only.</helpText>
+        <isLocalizable>false</isLocalizable>
+        <isRequired>false</isRequired>
+        <nodeLabel>Visual Style</nodeLabel>
+        <nodeName>visualStyle</nodeName>
+        <nodeType>TEXT</nodeType>
+    </managedContentNodeTypes>
+    <masterLabel>Contentful Image</masterLabel>
+</ManagedContentType>

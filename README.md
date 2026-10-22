@@ -91,9 +91,13 @@ sf project deploy start --target-org <your-org-alias>
 ```
 
 This deploys:
-- `SelectMarketingImage` Apex class
+- `SelectMarketingImage` Apex class (+ test + retriever client helper)
 - `MarketingImageAgent` permission set
+- `Contentful_Image` custom CMS content type
+
+**Not deployed via SFDX** (configure manually in the Data Cloud UI — see [docs/datacloud-setup.md](docs/datacloud-setup.md)):
 - `MarketingImage__dlm` DMO + supporting DLO + mapping + retriever
+- Reference XML lives in `datacloud-spec/` for anyone reproducing the schema
 
 Then assign the permission set to the user running the agent (and to the Agentforce agent user):
 
@@ -149,6 +153,8 @@ See [docs/demo-script.md](docs/demo-script.md) for the scripted prompts and expe
 ├── force-app/main/default/
 │   ├── classes/                       SelectMarketingImage Apex class
 │   ├── permissionsets/                MarketingImageAgent permset
+│   └── managedContentTypes/           Contentful_Image custom CMS content type
+├── datacloud-spec/                    Data Cloud schema (configured in UI, not SFDX-deployable)
 │   ├── dataStreams/                   DLO for Contentful webhook payloads
 │   ├── mktDataModels/                 MarketingImage__dlm DMO
 │   ├── mktDataTransformsObjects/      DLO → DMO mapping
