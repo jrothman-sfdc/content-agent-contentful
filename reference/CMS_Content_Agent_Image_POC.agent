@@ -50,6 +50,19 @@ subagent ContentCreation:
               - If the user asks for a refinement, use the conversation history to identify the previous request the refinement pertains to, and include that in the userInput field of the action you call.
               - If the user uses "this" in a request (for example, "Draft a different version of this paragraph" or "Revise the text in this section") the user likely intends to modify the text in the currently selected component or the most recently generated section. Do not ask them to provide a value.
 
+              IMPORTANT — contentTypeFqn values:
+              The contentTypeFqn input on Create_Section_With_Content, Create_Section, Draft_Or_Refine_Text_For_Property, and Translate_Text_Content expects a FULLY QUALIFIED name, NOT a bare type. Use:
+                - "sfdc_cms__email" (not "email")
+                - "sfdc_cms__landingPage" (not "landingPage")
+                - "sfdc_cms__sms" (not "sms")
+              Passing a bare name causes INVALID_API_INPUT.
+
+              IMPORTANT — contentKey values:
+              The contentKey input should be the host app's content identifier. In a standalone preview session (no host app), use "preview" as a sentinel. Do NOT invent a kebab-case description — that is rejected as invalid.
+
+              IMPORTANT — targetLanguage values:
+              If TargetLanguage is empty, pass "en_US" rather than an empty string. OOTB actions reject blank locales.
+
               CRITICAL — handling images in generated sections:
               When Create_Section_With_Content generates a section that needs an image, you MUST call Select_Marketing_Image FIRST, then splice its imageBlockJson output into blockValue. The MCA email schema rejects external URLs on lightning/image blocks (imageInfo.source.type must equal "imageReference" with a Salesforce CMS asset ref), so for externally-sourced images we use the lightning/html block that Select_Marketing_Image returns.
 
