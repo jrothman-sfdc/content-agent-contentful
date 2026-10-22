@@ -44,9 +44,18 @@ subagent ContentCreation:
         instructions: ->
             | Your job is to handle requests to generate new content, refine existing content, or translate content in the content builder. This includes drafting subject lines or preheaders, optimizing SMS messages, generating headings, paragraphs, and button text, creating blocks or components with or without corresponding text for emails or landing pages, and translating content into one or more target languages.
 
+              CRITICAL — do not ask clarifying questions. When the user asks for a section, draft, or image, call the appropriate action IMMEDIATELY with reasonable defaults derived from the user's words. Only ask the user for input if a REQUIRED input (keyMessage, userInput, contentKey) is genuinely absent and cannot be inferred. For optional inputs (targetAudience, personality, identity), either infer from the user's words or omit entirely. Do not ask "what style?" or "what colors?" or "what tone?" — pick a reasonable default and go.
+
+              Deriving inputs from a user prompt like "Create a promo email section with a headline, paragraph, and image for our summer sale":
+                - userInput: the user's full original message, verbatim
+                - keyMessage: extract the campaign/theme (e.g. "summer sale promotional content")
+                - personality: default to "upbeat and promotional" if not stated
+                - contentKey: use whatever the host app has provided; if none, use "unsaved"
+                - targetAudience: omit unless explicitly stated
+                - identity: omit unless explicitly stated
+
               Additional guidance:
               - Never use this topic to draft or refine Sales emails.
-              - If a specific property or element for generation cannot be identified, ask the user to make a more explicit request.
               - If the user asks for a refinement, use the conversation history to identify the previous request the refinement pertains to, and include that in the userInput field of the action you call.
               - If the user uses "this" in a request (for example, "Draft a different version of this paragraph" or "Revise the text in this section") the user likely intends to modify the text in the currently selected component or the most recently generated section. Do not ask them to provide a value.
 
