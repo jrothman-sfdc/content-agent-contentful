@@ -12,4 +12,8 @@
         <apexClass>DataCloudRetrieverClient</apexClass>
         <enabled>true</enabled>
     </classAccesses>
+    <classAccesses>
+        <apexClass>DataCloudCatalogProvider</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
 </PermissionSet>

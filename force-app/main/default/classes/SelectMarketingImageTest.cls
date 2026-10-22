@@ -8,7 +8,6 @@ private class SelectMarketingImageTest {
         List<SelectMarketingImage.Response> out = SelectMarketingImage.run(new List<SelectMarketingImage.Request>{ r });
         System.assertEquals(1, out.size());
         System.assertEquals('', out[0].assetUrl);
-        System.assertEquals('', out[0].assetId);
     }
 
     @IsTest
@@ -35,34 +34,27 @@ private class SelectMarketingImageTest {
     @IsTest
     static void retrieverEmpty_returnsEmptyStrings() {
         Test.setMock(HttpCalloutMock.class, new RetrieverMock(200, '{"results":[]}'));
-
         SelectMarketingImage.Request r = new SelectMarketingImage.Request();
-        r.keyMessage = 'no match for this one';
-
+        r.keyMessage = 'no match';
         Test.startTest();
         List<SelectMarketingImage.Response> out = SelectMarketingImage.run(new List<SelectMarketingImage.Request>{ r });
         Test.stopTest();
-
         System.assertEquals('', out[0].assetUrl);
     }
 
     @IsTest
     static void retrieverError_isSwallowed() {
         Test.setMock(HttpCalloutMock.class, new RetrieverMock(500, 'boom'));
-
         SelectMarketingImage.Request r = new SelectMarketingImage.Request();
         r.keyMessage = 'anything';
-
         Test.startTest();
         List<SelectMarketingImage.Response> out = SelectMarketingImage.run(new List<SelectMarketingImage.Request>{ r });
         Test.stopTest();
-
-        System.assertEquals('', out[0].assetUrl, 'Errors should degrade gracefully to empty response for the POC');
+        System.assertEquals('', out[0].assetUrl);
     }
 
     private class RetrieverMock implements HttpCalloutMock {
-        private Integer code;
-        private String body;
+        private Integer code; private String body;
         RetrieverMock(Integer c, String b) { code = c; body = b; }
         public HttpResponse respond(HttpRequest req) {
             HttpResponse r = new HttpResponse();

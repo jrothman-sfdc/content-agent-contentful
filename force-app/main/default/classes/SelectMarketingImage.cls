@@ -1,6 +1,11 @@
+/**
+ * Thin @InvocableMethod wrapper around DataCloudCatalogProvider for the Agentforce agent.
+ *
+ * The business logic lives in DataCloudCatalogProvider so the sibling repo's
+ * ContentfulAssetService (via IContentfulAssetProvider) and this agent action share
+ * one code path. If you want to change ranking, filtering, or output shape, do it there.
+ */
 public with sharing class SelectMarketingImage {
-
-    private static final String RETRIEVER_API_NAME = 'MarketingImageRetriever';
 
     public class Request {
         @InvocableVariable(label='Key Message' description='Concise statement of the content\'s point. Drives semantic ranking.' required=true)
@@ -29,7 +34,7 @@ public with sharing class SelectMarketingImage {
         @InvocableVariable(label='Asset ID' description='Contentful sys.id of the selected image.')
         public String assetId;
 
-        @InvocableVariable(label='Selected Campaign' description='The campaign variant of the asset actually returned (may differ from the requested filter when omitted).')
+        @InvocableVariable(label='Selected Campaign' description='The campaign variant of the asset actually returned.')
         public String campaign;
 
         @InvocableVariable(label='Selected Visual Style' description='The visualStyle variant of the asset actually returned.')
@@ -41,58 +46,39 @@ public with sharing class SelectMarketingImage {
         description='Selects the best-matching marketing image from the Data Cloud MarketingImage catalog using a hybrid filter + semantic ranking retriever. Returns the top asset or empty strings if no match.'
         category='Marketing Cloud')
     public static List<Response> run(List<Request> requests) {
+        DataCloudCatalogProvider provider = new DataCloudCatalogProvider();
         List<Response> results = new List<Response>();
         for (Request req : requests) {
-            results.add(selectOne(req));
+            results.add(selectOne(provider, req));
         }
         return results;
     }
 
-    private static Response selectOne(Request req) {
-        Response resp = new Response();
-        resp.assetUrl = '';
-        resp.altText = '';
-        resp.assetId = '';
-        resp.campaign = '';
-        resp.visualStyle = '';
+    private static Response selectOne(DataCloudCatalogProvider provider, Request req) {
+        Response resp = emptyResponse();
+        if (String.isBlank(req.keyMessage)) return resp;
 
-        if (String.isBlank(req.keyMessage)) {
-            return resp;
-        }
+        Map<String, Object> opts = new Map<String, Object>{
+            'locale'             => req.locale,
+            'campaign'           => req.campaign,
+            'visualStyle'        => req.visualStyle,
+            'contextDescription' => req.contextDescription
+        };
+        List<DataCloudCatalogProvider.AssetDTO> hits = provider.search(req.keyMessage, opts);
+        if (hits == null || hits.isEmpty()) return resp;
 
-        String semanticQuery = req.keyMessage;
-        if (String.isNotBlank(req.contextDescription)) {
-            semanticQuery += ' ' + req.contextDescription;
-        }
-
-        Map<String, Object> params = new Map<String, Object>();
-        params.put('semanticQuery', semanticQuery);
-        if (String.isNotBlank(req.locale))      params.put('locale', req.locale);
-        if (String.isNotBlank(req.campaign))    params.put('campaign', req.campaign);
-        if (String.isNotBlank(req.visualStyle)) params.put('visualStyle', req.visualStyle);
-
-        List<Map<String, Object>> hits;
-        try {
-            hits = DataCloudRetrieverClient.retrieve(RETRIEVER_API_NAME, params);
-        } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'MarketingImageRetriever call failed: ' + e.getMessage());
-            return resp;
-        }
-
-        if (hits == null || hits.isEmpty()) {
-            return resp;
-        }
-
-        Map<String, Object> top = hits.get(0);
-        resp.assetUrl    = asString(top.get('url__c'));
-        resp.altText     = asString(top.get('altText__c'));
-        resp.assetId     = asString(top.get('assetId__c'));
-        resp.campaign    = asString(top.get('campaign__c'));
-        resp.visualStyle = asString(top.get('visualStyle__c'));
+        DataCloudCatalogProvider.AssetDTO top = hits.get(0);
+        resp.assetUrl    = top.url;
+        resp.altText     = top.altText;
+        resp.assetId     = top.assetId;
+        resp.campaign    = top.campaign;
+        resp.visualStyle = top.visualStyle;
         return resp;
     }
 
-    private static String asString(Object v) {
-        return v == null ? '' : String.valueOf(v);
+    private static Response emptyResponse() {
+        Response r = new Response();
+        r.assetUrl = ''; r.altText = ''; r.assetId = ''; r.campaign = ''; r.visualStyle = '';
+        return r;
     }
 }
