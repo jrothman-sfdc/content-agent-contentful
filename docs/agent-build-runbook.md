@@ -23,16 +23,46 @@ Setup → Agentforce → **Agents** → **New Agent**.
 
 Save. **Do NOT activate yet.**
 
-## Step 2 — Add the new session context variables (optional)
+## Step 2 — Add session context variables
 
 Agent detail → **Session Context Variables** → **Add**.
 
+### Standard variables the stock agent uses (add all of these)
+
+| Name | Type | Visibility | Source / Default |
+|---|---|---|---|
+| `EndUserId` | Linked String | — | `@MessagingSession.MessagingEndUserId` |
+| `RoutableId` | Linked String | — | `@MessagingSession.Id` |
+| `ContactId` | Linked String | — | `@MessagingEndUser.ContactId` |
+| `EndUserLanguage` | Linked String | — | `@MessagingSession.EndUserLanguage` |
+| `ChannelType` | Linked String | — | `@MessagingSession.ChannelType` |
+| `VerifiedCustomerId` | Mutable String | Internal | — |
+| `TargetLanguage` | Mutable String | **External** | — |
+| `TargetLanguages` | Mutable String | **External** | — |
+
+`TargetLanguage` is the one that matters most for image selection — it drives the locale filter.
+
+### Optional additions for this POC
+
 | Name | Type | Visibility | Description |
 |---|---|---|---|
-| `Campaign` | Text (mutable) | External | Optional campaign override from the host app |
-| `VisualStyle` | Text (mutable) | External | Optional visual-style override from the host app |
+| `Campaign` | Mutable String | External | Optional campaign hint from the host app |
+| `VisualStyle` | Mutable String | External | Optional visual-style override from the host app |
 
-Skip this step if your host app will not supply these — the agent will infer from the user's prompt instead. The variables cause no harm when present-but-unset.
+Skip the two optional ones if your host app won't supply them — the agent will infer from the user's prompt instead.
+
+## Step 2b — Add the standard Marketing Cloud actions
+
+The stock `CMS Content Agent` uses 4 Marketing-Cloud-provided invocable actions. Add each from Agent detail → **Actions** → **Add → From Invocable Action**:
+
+| Standard action name (in picker) | Agent action label |
+|---|---|
+| `sfdc_cms__DraftOrRefineTextForProperty` | Marketing Cloud: Draft Content |
+| `sfdc_cms__CreateOrRefineSectionWithContent` | Marketing Cloud: Create Section with Content |
+| `sfdc_cms__CreateOrRefineSection` | Marketing Cloud: Create Section |
+| `sfdc_cms__TranslateTextContent` | Marketing Cloud: Translate Text Content |
+
+For each: **Require user confirmation:** off. **Include in progress indicator:** on. Accept the default input/output mappings — these are factory actions.
 
 ## Step 3 — Add the SelectMarketingImage action
 
