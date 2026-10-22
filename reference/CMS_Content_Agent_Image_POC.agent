@@ -34,10 +34,10 @@ start_agent topic_selector:
         instructions: ->
             | Route the user's content-authoring request to the ContentCreation topic.
         actions:
-            go_content_creation: @utils.transition to @topic.ContentCreation
+            go_content_creation: @utils.transition to @subagent.ContentCreation
                 description: "Handle any request to draft, refine, or translate marketing content, or to insert an image."
 
-topic ContentCreation:
+subagent ContentCreation:
     description: "Interacts with the user to draft, revise, or translate content from Salesforce CMS in the content builder. Handles subject lines, preheaders, SMS, headings, paragraphs, button text, section creation, and translation. Also handles autonomous image selection via the Contentful library when a section needs an image."
 
     reasoning:
